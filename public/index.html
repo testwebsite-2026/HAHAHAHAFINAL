@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TINDARHAN - POS System</title>
+<link rel="stylesheet" href="css/style.css?v=2024">
+</head>
+<body>
+
+<!-- ============ LOGIN SCREEN ============ -->
+<div id="loginScreen" class="login-overlay">
+  <div class="login-box">
+    <img src="logo.webp" class="brand-logo-login" alt="TINDARHAN" style="height: 60px; width: auto; object-fit: contain; margin-bottom: 12px;">
+    <h2>TINDARHAN</h2>
+    <p class="login-sub">POS System</p>
+    <form id="loginForm">
+      <label>Username
+        <input type="text" id="loginUsername" autocomplete="username" required autofocus>
+      </label>
+      <label>Password
+        <input type="password" id="loginPassword" autocomplete="current-password" required>
+      </label>
+      <p id="loginError" class="login-error hidden"></p>
+      <button type="submit" class="btn btn-primary login-submit">Log In</button>
+    </form>
+  </div>
+</div>
+
+<!-- ============ APP ROOT (hidden until logged in) ============ -->
+<div id="app" class="app hidden">
+
+  <!-- ============ APP HEADER ============ -->
+  <header class="app-header">
+    <div class="brand">
+      <img src="logo.webp" class="brand-logo" alt="TINDARHAN" style="height: 44px; width: auto; object-fit: contain;">
+      <div class="brand-text">
+        <h1>TINDARHAN</h1>
+        <p>POS System</p>
+      </div>
+    </div>
+    <div class="header-center">
+      <div class="cashier-box">
+        <span class="cashier-label">Cashier</span>
+        <input type="text" id="cashierName" placeholder="Enter name" readonly>
+      </div>
+      <span id="clockTime" class="clock-time"></span>
+      <span id="userBadge" class="user-badge"></span>
+    </div>
+    <button id="logoutBtn" class="btn btn-ghost">Log Out</button>
+  </header>
+
+  <!-- ============ TAB NAVIGATION ============ -->
+  <nav class="tab-nav">
+    <button class="tab-btn active" data-tab="tab-pos">🛒 Point of Sale</button>
+    <button class="tab-btn" data-tab="tab-inventory">📦 Inventory</button>
+    <button class="tab-btn" data-tab="tab-reports">📊 Reports</button>
+  </nav>
+
+  <!-- ============ POINT OF SALE TAB ============ -->
+  <section id="tab-pos" class="tab-panel active">
+    <div class="pos-layout">
+      <div class="pos-items-panel">
+        <div id="posItemGrid" class="item-grid"></div>
+      </div>
+      <div class="pos-cart-panel hidden" id="posCartPanel"></div>
+    </div>
+
+    <!-- Sticky mobile summary -->
+    <div id="floatingCartBar" class="floating-cart-bar hidden">
+      <span class="fc-count"><span id="floatingCartCount">0</span> items</span>
+      <span class="fc-total" id="floatingCartTotal">₱0.00</span>
+      <button class="fc-view-btn" onclick="UI.openModal('currentSaleModal')">View Cart ↓</button>
+    </div>
+  </section>
+
+  <!-- ============ INVENTORY TAB ============ -->
+  <section id="tab-inventory" class="tab-panel">
+    <div class="panel-toolbar">
+      <div class="date-selector">
+        <label>Date:
+          <input type="date" id="inventoryDateInput">
+        </label>
+      </div>
+      <button id="addItemBtn" class="btn btn-primary">+ Add Item</button>
+    </div>
+    <div class="table-container">
+      <table class="data-table" id="inventoryTable">
+        <thead>
+          <tr>
+            <th>Icon</th>
+            <th>Name</th>
+            <th>SKU</th>
+            <th>Price</th>
+            <th>Stock</th>
+            <th>Date</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="inventoryTableBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============ REPORTS TAB ============ -->
+  <section id="tab-reports" class="tab-panel">
+    <div class="panel-toolbar reports-toolbar">
+      <button id="downloadReportsBtn" class="btn btn-primary">⬇ Download Reports</button>
+    </div>
+    <div class="report-stats">
+      <div class="stat-card">
+        <span class="stat-label">Total Sales</span>
+        <span class="stat-value" id="statTotalSales">₱0.00</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Transactions</span>
+        <span class="stat-value" id="statTransactions">0</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Items Sold</span>
+        <span class="stat-value" id="statItemsSold">0</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Average Sale</span>
+        <span class="stat-value" id="statAvgSale">₱0.00</span>
+      </div>
+    </div>
+    <div class="reports-grid">
+      <div class="report-block full-width">
+        <h3>Sales Transactions</h3>
+        <div class="table-container">
+          <table class="data-table" id="salesTable">
+            <thead>
+              <tr>
+                <th>Receipt #</th>
+                <th>Date & Time</th>
+                <th>Items</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody id="salesTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- ============ ITEM FORM MODAL ============ -->
+<div id="itemModal" class="modal-overlay hidden">
+  <div class="modal">
+    <h2 id="itemModalTitle">Add Item</h2>
+    <form id="itemForm" class="form-grid">
+      <label>Product Name
+        <input type="text" id="itemName" required>
+      </label>
+      <label>Icon (emoji)
+        <input type="text" id="itemIcon" placeholder="🥭" maxlength="4">
+      </label>
+      <label>SKU / Code
+        <input type="text" id="itemSku" placeholder="Auto-generated if blank">
+      </label>
+      <label>Price (₱)
+        <input type="number" id="itemPrice" min="0" step="0.01" required>
+      </label>
+      <label>Stock Quantity
+        <input type="number" id="itemStock" min="0" step="1" required>
+      </label>
+      <label>Low Stock Alert Below
+        <input type="number" id="itemLowStock" min="0" step="1" value="5">
+      </label>
+    </form>
+    <div class="modal-actions">
+      <button type="button" id="deleteItemBtn" class="btn btn-danger hidden">Delete</button>
+      <div class="modal-actions-right">
+        <button type="button" id="cancelItemBtn" class="btn btn-ghost">Cancel</button>
+        <button type="button" id="saveItemBtn" class="btn btn-primary">Save Item</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ QUICK ADD MODAL ============ -->
+<div id="quickAddModal" class="modal-overlay hidden">
+  <div class="modal quick-add-modal">
+    <h2 id="qaTitle"></h2>
+    <p id="qaPrice"></p>
+    <div class="qty-control">
+      <button class="qty-btn" id="qaMinus">−</button>
+      <input type="number" id="qaQty" value="1" min="1" readonly>
+      <button class="qty-btn" id="qaPlus">+</button>
+    </div>
+    <div class="modal-actions">
+      <button type="button" id="qaCancel" class="btn btn-ghost">Cancel</button>
+      <button type="button" id="qaAddBtn" class="btn btn-primary">Add to Cart</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ RECEIPT MODAL ============ -->
+<div id="receiptModal" class="modal-overlay hidden">
+  <div class="modal receipt-modal">
+    <div id="receiptContent" class="receipt"></div>
+    <div class="modal-actions receipt-actions">
+      <button id="closeReceiptBtn" class="btn btn-ghost">Close</button>
+      <button id="printReceiptBtn" class="btn btn-primary">🖨 Print Receipt</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ CURRENT SALE MODAL ============ -->
+<div id="currentSaleModal" class="modal-overlay hidden">
+  <div class="modal current-sale-modal">
+    <h2>Current Sale</h2>
+    <div id="cartList" class="cart-list">
+      <p class="empty-hint">Tap a product to add it to the sale.</p>
+    </div>
+
+    <div class="cart-summary">
+      <div class="summary-row">
+        <span>Items</span>
+        <span id="cartItemCount">0</span>
+      </div>
+      <div class="summary-row total-row">
+        <span>Total Sale</span>
+        <span id="cartTotal">₱0.00</span>
+      </div>
+
+      <div class="pay-row">
+        <label for="amountPaid">Amount Paid</label>
+        <input type="number" id="amountPaid" min="0" step="0.01" placeholder="0.00">
+      </div>
+      <div class="summary-row change-row">
+        <span>Change</span>
+        <span id="cartChange">₱0.00</span>
+      </div>
+
+      <div class="cart-actions">
+        <button id="clearCartBtn" class="btn btn-ghost">Clear</button>
+        <button id="checkoutBtn" class="btn btn-primary">Complete Sale</button>
+        <button id="closeCartModal" class="btn btn-ghost">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ REPORTS DATE SELECTION MODAL ============ -->
+<div id="reportsDateModal" class="modal-overlay hidden">
+  <div class="modal">
+    <h2>Download Reports</h2>
+    <div class="form-grid">
+      <label>From Date
+        <input type="date" id="reportDownloadFrom">
+      </label>
+      <label>To Date
+        <input type="date" id="reportDownloadTo">
+      </label>
+      <label>
+        <input type="checkbox" id="reportIncludePreview"> Preview Report
+      </label>
+    </div>
+    <div class="modal-actions">
+      <button type="button" id="cancelReportsBtn" class="btn btn-ghost">Cancel</button>
+      <button type="button" id="confirmDownloadReportsBtn" class="btn btn-primary">Download</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ TOAST ============ -->
+<div id="toast" class="toast hidden"></div>
+
+<!-- ============ SCRIPTS ============ -->
+<script src="js/storage.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/main.js"></script>
+<script src="js/pos.js"></script>
+<script src="js/inventory.js"></script>
+<script src="js/receipt.js"></script>
+<script src="js/reports.js"></script>
+
+</body>
+</html>
